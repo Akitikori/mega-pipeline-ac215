@@ -14,11 +14,11 @@ from tempfile import TemporaryDirectory
 # Generate the inputs arguments parser
 parser = argparse.ArgumentParser(description="Command description.")
 
-gcp_project = "" #"ac215-project"
-bucket_name = ""  #"mega-pipeline-bucket"
+gcp_project = "ac215-508623" #"ac215-project"
+bucket_name = "ac215-akiti-bucket"  #"mega-pipeline-bucket"
 input_audios = "input_audios"
 text_prompts = "text_prompts"
-group_name = "" #"pavlos-advanced"
+group_name = "akiti" #"pavlos-advanced"
 
  
 assert group_name!="", "Update group name"
@@ -82,7 +82,11 @@ def transcribe():
             print("response:", response)
             text = "None"
             if len(response.results) > 0:
-                text = response.results[0].alternatives[0].transcript
+                transcripts = []
+                for result in response.results:
+                        if len(result.alternatives) > 0:
+                            transcripts.append(result.alternatives[0].transcript)
+                text = "".join(transcripts)
                 print(text)
 
             # Save the transcription

@@ -12,3 +12,13 @@ outputs
 /deployment
 /frontend
 /.idea
+
+# Local credentials and audio artifacts
+.env
+.env.*
+mega-pipeline.json
+*.pem
+*.key
+*.mp3
+*.wav
+*.flac

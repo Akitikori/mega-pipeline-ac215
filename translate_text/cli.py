@@ -11,11 +11,11 @@ from google.cloud import translate_v2 as translate
 # Generate the inputs arguments parser
 parser = argparse.ArgumentParser(description="Command description.")
 
-gcp_project = "ac215-project" #"ac215-project"
-bucket_name = "mega-pipeline-bucket"  #"mega-pipeline-bucket"
+gcp_project = "ac215-508623" #"ac215-project"
+bucket_name = "ac215-akiti-bucket"  #"mega-pipeline-bucket"
 text_paragraphs = "text_paragraphs"
 text_translated = "text_translated"
-group_name = "pavlos-advanced" #"pavlos-advanced"
+group_name = "akiti" #"pavlos-advanced"
 assert group_name!="", "Update group name"
 #assert group_name!="pavlos-advanced", "Update group name"
 
