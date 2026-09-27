@@ -1,4 +1,71 @@
-# Mega Pipeline App
+# AC215 Mega Pipeline — My Learning Notes
+
+This repository documents my hands-on work with Docker, Python dependency management, and Google Cloud in AC215. It is adapted from the [dlops-io Mega Pipeline tutorial](https://github.com/dlops-io/mega-pipeline/tree/flexible-workflow). The course provides the pipeline and container tooling; my work involved configuring it for my own cloud project, running the components, debugging their inputs and outputs, and understanding how the pieces fit together.
+
+## What the project does
+
+The pipeline turns a recorded draft into an expanded podcast and translated audio:
+
+```text
+Input audio → Speech-to-Text → Gemini text generation
+                                  ├── English speech synthesis
+                                  └── Translation → Translated speech synthesis
+```
+
+Each component runs in its own Docker container. The components exchange files through a shared Google Cloud Storage bucket, and I run them sequentially rather than through an automated orchestrator.
+
+## What I learned
+
+### Docker images, containers, and processes
+
+- A Dockerfile describes how to build an image. An image contains the application files, runtime, installed dependencies, and startup configuration.
+- Building an image does not start the application. A container is an instance created from that image, with its own processes and writable filesystem layer.
+- A shell is a process inside a container, not the container itself. In this tutorial, Bash starts Python when I run a command such as `python cli.py --transcribe`.
+- When Python finishes, Bash can keep running. When the container's main process exits, the container stops. The scripts use `--rm`, so Docker then removes it.
+- `docker-shell.sh` is a project-provided Bash helper that invokes Docker, configures mounts and credentials, and opens an interactive shell. `./` tells my shell to execute a file from the current directory.
+
+### Dependencies and reproducible builds
+
+Each component is an independent Python project. Its `pyproject.toml` declares dependencies, while `uv.lock` records resolved versions, including indirect dependencies. The Dockerfile runs `uv sync` during the build, so the resulting image already contains installed packages.
+
+Editing a dependency file does not install a package. Likewise, pulling a prepared image downloads the installed environment; it does not need to repeat installation just to start a container.
+
+### Where data lives
+
+| Location | What happens when work stops? |
+| --- | --- |
+| Process memory | Variables disappear when the process exits. |
+| Container's writable layer | Files survive stopping the container, but not removing it. |
+| Bind-mounted host folder | Files remain on my computer after container removal. |
+| Cloud Storage bucket | Files remain independently of my local containers. |
+
+The scripts mount each component's local directory at `/app`. This exposes the same host files inside the container, rather than maintaining a second synchronized copy. Editing code on my Mac changes what the next Python invocation reads. It does not automatically reload an already-running Python process.
+
+### Google Cloud identity and storage
+
+I configured the components with my project ID, bucket name, and group name. The group name determines the paths used to exchange outputs between stages.
+
+I learned to distinguish API enablement, authentication, and authorization: enabling an API makes a service available to a project; credentials identify the service account making requests; IAM permissions determine which operations that identity can perform. The components use the same service-account credentials, mounted into their containers rather than committed to Git.
+
+One important correction from inspecting the code: these synthesis components use **Long Audio Synthesis**. Advice about the standard Text-to-Speech endpoint needing no additional service-specific role should not be assumed to apply to them.
+
+## Debugging lessons and my changes
+
+- **File naming is part of the interface.** `input_audio.txt` did not match the upload pattern `input-*.txt`. Using `input-audio.mp3` as the source produced a matching transcript filename.
+- **A command can finish without processing anything.** An incorrect group name or empty input folder can result in no matching files and no output.
+- **Similar component names can hide different inputs.** `synthesis_audio_en` reads generated English text from `text_paragraphs`; `synthesis_audio` reads translated text from `text_translated`.
+- **Cloud output is not automatically a local backup.** Synthesis writes audio directly to the bucket, so I need to download it separately before deleting cloud resources.
+- **Transcription can return multiple segments.** I changed the transcription code to collect the returned transcript segments instead of keeping only the first one.
+
+I also configured all five components for my team and added ignore rules for local credentials and audio artifacts. This repository shares the code and my learning; it does not include credentials or a backup of the generated media. Running it requires your own cloud resources and configuration.
+
+---
+
+## Original course tutorial
+
+The course walkthrough is retained below for setup and reference.
+
+> **Permissions note:** The original Text-to-Speech role advice below is too broad for the Long Audio Synthesis calls used in this code. Check the permissions required for that operation when configuring your service account.
 
 🎙️ → 📝 → 🗒️ → [🔊🇫🇷] → 🔊
 
